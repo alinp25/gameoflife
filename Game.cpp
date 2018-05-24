@@ -1,6 +1,13 @@
 #include "Game.hpp"
 #include <iostream>
 
+void copyVector(std::vector<Cell> &v1, std::vector<Cell> &v2) {
+  v2.clear();
+  for (int i = 0; i < v1.size(); i++) {
+    v2.push_back(v1[i]);
+  }
+}
+
 Game::Game() { 
   window.create(sf::VideoMode(this->WINDOW_SIZE, this->WINDOW_SIZE), "Game of life!");
   window.setFramerateLimit(FPS);
@@ -8,6 +15,7 @@ Game::Game() {
     for (int j = 0; j < this->GRID_SIZE; j++) {
       Cell newCell(i, j, this->CELL_SIZE);
       this->grid.push_back(newCell);
+      this->gridCopy.push_back(newCell);
     }
   }
   isRunning = false;
@@ -17,19 +25,20 @@ Game::~Game() { }
 
 int Game::getLivingNeighbors(int x, int y) {
   int livingNeighbors = 0;
-  if (x < GRID_SIZE - 1 &&  grid[y * GRID_SIZE + x + 1].isAlive()) livingNeighbors++;
-  if (x > 0        &&  grid[y * GRID_SIZE + x - 1].isAlive()) livingNeighbors++;
-  if (y < GRID_SIZE - 1 &&  grid[(y + 1) * GRID_SIZE + x].isAlive()) livingNeighbors++;
-  if (y > 0        &&  grid[(y - 1) * GRID_SIZE + x].isAlive()) livingNeighbors++;
-  if (x < GRID_SIZE - 1 &&  y < GRID_SIZE - 1 &&  grid[(y + 1) * GRID_SIZE + x + 1].isAlive()) livingNeighbors++;
-  if (x > 0        &&  y < GRID_SIZE - 1 &&  grid[(y + 1) * GRID_SIZE + x - 1].isAlive()) livingNeighbors++;
-  if (y > 0        &&  x < GRID_SIZE - 1 && grid[(y - 1) * GRID_SIZE + x + 1].isAlive()) livingNeighbors++;
-  if (y > 0        &&  x > 0        && grid[(y - 1) * GRID_SIZE + x - 1].isAlive()) livingNeighbors++;
+  if (x < GRID_SIZE - 1                                  &&  grid[y * GRID_SIZE + x + 1].isAlive()) livingNeighbors++;
+  if (x > 0                                              &&  grid[y * GRID_SIZE + x - 1].isAlive()) livingNeighbors++;
+  if (y < GRID_SIZE - 1                                  &&  grid[(y + 1) * GRID_SIZE + x].isAlive()) livingNeighbors++;
+  if (y > 0                                              &&  grid[(y - 1) * GRID_SIZE + x].isAlive()) livingNeighbors++;
+  if (y < GRID_SIZE - 1   &&  x < GRID_SIZE - 1          &&  grid[(y + 1) * GRID_SIZE + x + 1].isAlive()) livingNeighbors++;
+  if (y < GRID_SIZE - 1   &&  x > 0                      &&  grid[(y + 1) * GRID_SIZE + x - 1].isAlive()) livingNeighbors++;
+  if (y > 0               &&  x < GRID_SIZE - 1          &&  grid[(y - 1) * GRID_SIZE + x + 1].isAlive()) livingNeighbors++;
+  if (y > 0               &&  x > 0                      &&  grid[(y - 1) * GRID_SIZE + x - 1].isAlive()) livingNeighbors++;
 
   return livingNeighbors;
 }
 
 void Game::run() {
+  this->elapsedActivated = this->clockActivating.getElapsedTime();
   while(window.isOpen()) {
     sf::Event event;
     this->elapsedActivated = this->clockActivating.getElapsedTime();
@@ -41,7 +50,7 @@ void Game::run() {
         int yCell = event.mouseButton.x / CELL_SIZE;
         int xCell = event.mouseButton.y / CELL_SIZE;
         grid[yCell * ROWS + xCell].update(this->window, this->clockActivating, this->elapsedActivated);
-        getLivingNeighbors(xCell, yCell);
+        // getLivingNeighbors(xCell, yCell);
       } else if (event.type = sf::Event::KeyPressed) {
         if (event.key.code == sf::Keyboard::Space) {
           if (elapsedStart.asSeconds() >= 2) {
@@ -50,21 +59,28 @@ void Game::run() {
             clockStart.restart();
           }
         }
+        if (event.key.code == sf::Keyboard::R && !isRunning) {
+          for (int i = 0; i < grid.size(); i++) {
+            grid[i].kill();
+          }
+        }
       }
     }
     if (isRunning) {
+      copyVector(grid, gridCopy);
       std::cout << "DA";
       for (int i = 0; i < grid.size(); i++) {
         int nb = getLivingNeighbors(grid[i].getY(), grid[i].getX());
-        bool lives = grid[i].isAlive();
-        if (nb < 2 && lives) {
-          grid[i].kill();
-        } else if (nb > 3 && lives) {
-          grid[i].kill();
-        } else if (nb == 3 && !lives) {
-          grid[i].born();
+        bool lives = gridCopy[i].isAlive();
+        if (nb < 2) {
+          gridCopy[i].kill();
+        } else if (nb > 3) {
+          gridCopy[i].kill();
+        } else if (nb == 3) {
+          gridCopy[i].born();
         }
       }
+      copyVector(gridCopy, grid);
     }
     for (int i = 0; i < grid.size(); i++) {
       grid[i].draw(window);

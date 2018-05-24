@@ -18,7 +18,7 @@ private:
   bool isRunning;
 
   sf::RenderWindow window;
-  std::vector<Cell> grid;
+  std::vector<Cell> grid, gridCopy;
   sf::Clock clockActivating;
   sf::Time elapsedActivated;
   sf::Clock clockStart;
